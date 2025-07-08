@@ -1,91 +1,128 @@
 'use client';
 
 import Image from "next/image";
-import { useState } from "react";
-
-const wallPosts = [
-  {
-    author: "Anna",
-    message: "Hey Greg, did you debug your coffee maker yet? Last cup tasted like JavaScript errors.",
-  },
-  {
-    author: "Adelaida",
-    message: "Greg, saw your last coding session—pretty sure you broke Stack Overflow again! 🧯",
-  },
-  {
-    author: "Juho",
-    message: "Greg, are you still coding in pajamas, or have you upgraded to full-time sweatpants mode?",
-  },
-  {
-    author: "Maija",
-    message: "Greg, rumor has it your computer has more stickers than code running on it. Confirm?",
-  },
-  {
-    author: "Alex",
-    message: "Yo Greg, just pulled an all-nighter on the assignment. Turns out sleep deprivation doesn’t improve coding skills. Weird!",
-  },
-  {
-    author: "Sheryl",
-    message: "Greg, when are we gonna deploy your latest dance moves to production? #AgileDancer",
-  },
-];
+import { useState, useRef } from "react";
 
 export default function Home() {
   const [input, setInput] = useState("");
+  const [profileImage, setProfileImage] = useState<string>("/profile.jpg");
+  const [posts, setPosts] = useState([
+    { author: "Anna", message: "Hey Greg, did you debug your coffee maker yet? Last cup tasted like JavaScript errors.", time: "2h" },
+    { author: "Adelaida", message: "Greg, saw your last coding session—pretty sure you broke Stack Overflow again! 🧯", time: "3h" },
+    { author: "Juho", message: "Greg, are you still coding in pajamas, or have you upgraded to full-time sweatpants mode?", time: "4h" },
+    { author: "Maija", message: "Greg, rumor has it your computer has more stickers than code running on it. Confirm?", time: "5h" },
+    { author: "Alex", message: "Yo Greg, just pulled an all-nighter on the assignment. Turns out sleep deprivation doesn’t improve coding skills. Weird!", time: "6h" },
+    { author: "Sheryl", message: "Greg, when are we gonna deploy your latest dance moves to production? #AgileDancer", time: "8h" },
+  ]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isHovering, setIsHovering] = useState(false);
+
+  function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setProfileImage(url);
+    }
+  }
+
+  function handleCameraClick() {
+    fileInputRef.current?.click();
+  }
+
+  function handleShare() {
+    if (input.trim() && input.length <= 280) {
+      setPosts([{ author: "Lihle Magidigidi", message: input, time: "now" }, ...posts]);
+      setInput("");
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-[#fdf6f0] font-handwritten text-black">
+    <div className="min-h-screen w-full bg-[#f6f8fa] font-sans">
       {/* Header */}
-      <header className="bg-[#2196f3] text-white text-2xl font-bold px-4 py-2 rounded-t-lg w-full max-w-4xl mx-auto mt-4 shadow-md border border-blue-700">
+      <header className="bg-[#2196f3] text-white text-2xl font-semibold px-6 py-3 w-full shadow-sm">
         wall
       </header>
-      <main className="flex flex-col md:flex-row gap-8 max-w-4xl mx-auto bg-white rounded-b-lg shadow-md border border-blue-700 border-t-0 p-6">
+      <main className="flex flex-row gap-8 max-w-7xl mx-auto py-8 px-4 h-[calc(100vh-64px)]">
         {/* Profile Section */}
-        <section className="flex flex-col items-center md:w-1/3">
-          <Image
-            src="https://randomuser.me/api/portraits/men/32.jpg"
-            alt="Greg Wientjes"
-            width={180}
-            height={180}
-            className="rounded-lg border-4 border-white shadow-md mb-4"
-          />
-          <div className="w-full">
-            <h2 className="text-xl font-bold mb-1 text-black">Greg Wientjes</h2>
-            <div className="bg-[#f7f7f7] border border-gray-300 rounded-lg p-2 mb-2">
-              <div className="font-semibold text-sm mb-1 text-black">Information</div>
-              <div className="text-xs text-black">
+        <aside className="w-80 flex-shrink-0 flex flex-col items-center bg-white rounded-xl shadow p-6 h-fit mt-2">
+          <div
+            className="relative group mb-4"
+            style={{ width: 256, height: 320 }}
+            onMouseEnter={() => setIsHovering(true)}
+            onMouseLeave={() => setIsHovering(false)}
+          >
+            <Image
+              src={profileImage}
+              alt="Profile"
+              width={256}
+              height={320}
+              className="rounded-lg border-2 border-gray-200 object-cover"
+              style={{ width: 256, height: 320 }}
+            />
+            <button
+              type="button"
+              onClick={handleCameraClick}
+              className={`absolute inset-0 flex flex-col items-center justify-center bg-black/40 rounded-lg transition-opacity duration-200 ${isHovering ? 'opacity-100' : 'opacity-0'} cursor-pointer`}
+              tabIndex={-1}
+              aria-label="Change profile photo"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="white" className="w-10 h-10 mb-1">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5V7.5A2.25 2.25 0 0 1 5.25 5.25h2.086a2.25 2.25 0 0 0 1.591-.659l.828-.828A2.25 2.25 0 0 1 12.75 3h2.5a2.25 2.25 0 0 1 2.25 2.25v.75h.75A2.25 2.25 0 0 1 20.25 8.25v8.25A2.25 2.25 0 0 1 18 18.75H6A2.25 2.25 0 0 1 3.75 16.5v0z" />
+                <circle cx="12" cy="13" r="3.25" stroke="white" strokeWidth="1.5" />
+              </svg>
+              <span className="text-white text-sm">upload a photo</span>
+            </button>
+            <input
+              type="file"
+              accept="image/*"
+              ref={fileInputRef}
+              onChange={handleImageUpload}
+              className="hidden"
+            />
+          </div>
+          <div className="w-full text-center">
+            <h2 className="text-xl font-bold mb-0.5 text-gray-900">Lihle Magidigidi</h2>
+            <div className="text-gray-500 text-sm mb-2">wall</div>
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-2">
+              <div className="font-medium text-sm mb-1 text-gray-700">Information</div>
+              <div className="text-xs text-gray-600">
                 <div className="mb-1">
-                  <span className="font-semibold text-black">Networks</span><br />Stanford Alum
+                  <span className="font-semibold">Developer</span><br />Nelson Mandela University Alumni
                 </div>
                 <div>
-                  <span className="font-semibold text-black">Current City</span><br />Palo Alto, CA
+                  <span className="font-semibold">Current City</span><br />Johannesburg, South Africa
                 </div>
               </div>
             </div>
           </div>
-        </section>
+        </aside>
         {/* Wall Section */}
-        <section className="flex-1 flex flex-col gap-4">
-          <div>
-            <div className="font-bold text-lg mb-1 text-black">Wall</div>
-            <input
-              type="text"
-              className="w-full border-2 border-dashed border-black/70 rounded-xl p-2 bg-[#f7f7f7] text-base font-handwritten mb-2 text-black outline-none"
-              placeholder="Write something..."
+        <section className="flex-1 flex flex-col gap-6">
+          <div className="bg-white rounded-xl shadow p-6 mb-2">
+            <textarea
+              className="w-full border border-gray-300 rounded-lg p-3 text-base text-gray-900 bg-gray-50 resize-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 outline-none"
+              placeholder="What's on your mind?"
+              rows={3}
+              maxLength={280}
               value={input}
               onChange={e => setInput(e.target.value)}
             />
-            <button
-              className="bg-[#2196f3] text-white font-bold px-6 py-2 rounded-lg shadow hover:bg-blue-600 transition-all float-right"
-              disabled
-            >
-              Share
-            </button>
+            <div className="flex justify-between items-center mt-2">
+              <span className="text-xs text-gray-400">{280 - input.length} characters remaining</span>
+              <button
+                className={`font-semibold px-5 py-2 rounded-lg transition-colors ${input.trim() && input.length <= 280 ? 'bg-[#2196f3] text-white hover:bg-blue-600 cursor-pointer' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
+                disabled={!input.trim() || input.length > 280}
+                onClick={handleShare}
+              >
+                Share
+              </button>
+            </div>
           </div>
-          <div className="clear-both mt-8 flex flex-col gap-4">
-            {wallPosts.map((post, idx) => (
-              <div key={idx} className="border-t border-black/40 pt-2">
-                <div className="font-bold text-black">{post.author}</div>
-                <div className="text-base font-handwritten text-black">{post.message}</div>
+          <div className="flex flex-col gap-2 overflow-y-auto">
+            {posts.map((post, idx) => (
+              <div className="mb-2" key={idx}>
+                <div className="font-semibold text-gray-900">{post.author} <span className="text-xs text-gray-400 ml-2">{post.time}</span></div>
+                <div className="text-gray-700">{post.message}</div>
               </div>
             ))}
           </div>
