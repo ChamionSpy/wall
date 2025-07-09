@@ -10,12 +10,15 @@ type Post = {
   user_id?: string | null;
   body: string;
   created_at: string;
+  photo_url?: string | null;
 };
 
 export default function Home() {
   const [input, setInput] = useState("");
   const [profileImage, setProfileImage] = useState<string>("/profile.jpg");
   const [posts, setPosts] = useState<Post[]>([]);
+  const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isHovering, setIsHovering] = useState(false);
 
@@ -66,18 +69,58 @@ export default function Home() {
     fileInputRef.current?.click();
   }
 
+  function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] || null;
+    setSelectedPhoto(file);
+    if (file) {
+      setPhotoPreview(URL.createObjectURL(file));
+    } else {
+      setPhotoPreview(null);
+    }
+  }
+
+  function handlePhotoBoxClick() {
+    fileInputRef.current?.click();
+  }
+
   async function handleShare() {
-    if (input.trim() && input.length <= 280) {
-      const { data, error } = await supabase.from('posts').insert([
-        {
-          body: input,
-          // user_id: null, // If you add auth, set this
-        },
-      ]).select();
-      if (!error && data && data.length > 0) {
-        setPosts([data[0], ...posts]);
-        setInput("");
+    if (!input.trim() && !selectedPhoto) return; // Don't allow empty posts
+
+    let photo_url = null;
+    if (selectedPhoto) {
+      // Sanitize file name
+      const cleanName = selectedPhoto.name.replace(/[^a-zA-Z0-9.\\-_]/g, '_');
+      const fileName = `${Date.now()}-${cleanName}`;
+      const { data: storageData, error: storageError } = await supabase.storage
+        .from('post-photos')
+        .upload(fileName, selectedPhoto, { upsert: false });
+      if (!storageError && storageData) {
+        const { data: publicUrlData } = supabase.storage
+          .from('post-photos')
+          .getPublicUrl(fileName);
+        photo_url = publicUrlData.publicUrl;
+      } else {
+        alert('Photo upload failed: ' + (storageError?.message || 'Unknown error'));
+        return;
       }
+    }
+
+    // Insert the post into Supabase
+    const { data, error } = await supabase.from('posts').insert([
+      {
+        body: input,
+        photo_url,
+        // user_id: null, // If you add auth, set this
+      },
+    ]).select();
+
+    if (!error && data && data.length > 0) {
+      setPosts([data[0], ...posts]);
+      setInput("");
+      setSelectedPhoto(null);
+      setPhotoPreview(null);
+    } else {
+      alert('Post creation failed: ' + (error?.message || 'Unknown error'));
     }
   }
 
@@ -167,11 +210,49 @@ export default function Home() {
               value={input}
               onChange={e => setInput(e.target.value)}
             />
-            <div className="flex justify-between items-center mt-2">
-              <span className="text-xs text-gray-400">{280 - input.length} characters remaining</span>
+            {/* Character count below textarea */}
+            <div className="text-xs text-gray-400 mt-1 mb-3">{280 - input.length} characters remaining</div>
+            {/* Photo upload area */}
+            <div
+              className="w-full border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center py-8 cursor-pointer hover:border-blue-400 transition mb-2 relative min-h-[120px]"
+              onClick={handlePhotoBoxClick}
+              tabIndex={0}
+              role="button"
+              aria-label="Add photo"
+            >
+              {photoPreview ? (
+                <div className="flex flex-col items-center gap-2">
+                  <img src={photoPreview} alt="Preview" className="w-32 h-32 object-cover rounded-lg border" />
+                  <button
+                    type="button"
+                    className="text-xs text-red-500 hover:underline mt-1"
+                    onClick={e => { e.stopPropagation(); setSelectedPhoto(null); setPhotoPreview(null); }}
+                  >
+                    Remove photo
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#bdbdbd" className="w-10 h-10 mb-2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5V7.5A2.25 2.25 0 0 1 5.25 5.25h2.086a2.25 2.25 0 0 0 1.591-.659l.828-.828A2.25 2.25 0 0 1 12.75 3h2.5a2.25 2.25 0 0 1 2.25 2.25v.75h.75A2.25 2.25 0 0 1 20.25 8.25v8.25A2.25 2.25 0 0 1 18 18.75H6A2.25 2.25 0 0 1 3.75 16.5v0z" />
+                    <circle cx="12" cy="13" r="3.25" stroke="#bdbdbd" strokeWidth="1.5" />
+                  </svg>
+                  <span className="text-gray-500 font-medium">Click to add photo <span className="text-gray-400 font-normal">(optional)</span></span>
+                  <span className="text-gray-400 text-xs mt-1">JPG, PNG, GIF up to 5MB</span>
+                </div>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                ref={fileInputRef}
+                onChange={handlePhotoChange}
+                className="hidden"
+              />
+            </div>
+            <div className="flex justify-end items-center mt-2">
               <button
-                className={`font-semibold px-5 py-2 rounded-lg transition-colors ${input.trim() && input.length <= 280 ? 'bg-[#2196f3] text-white hover:bg-blue-600 cursor-pointer' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
-                disabled={!input.trim() || input.length > 280}
+                className={`font-semibold px-5 py-2 rounded-lg transition-colors ${(input.trim() || selectedPhoto) ? 'bg-[#2196f3] text-white hover:bg-blue-600 cursor-pointer' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
+                disabled={!(input.trim() || selectedPhoto)}
                 onClick={handleShare}
               >
                 Share
@@ -180,9 +261,29 @@ export default function Home() {
           </div>
           <div className="flex flex-col gap-2 overflow-y-auto">
             {posts.map((post, idx) => (
-              <div className="mb-2" key={post.id || idx}>
-                <div className="font-semibold text-gray-900">Lihle Magidigidi <span className="text-xs text-gray-400 ml-2">{post.created_at ? formatRelativeTime(post.created_at) : "just now"}</span></div>
+              <div
+                className="bg-white rounded-xl shadow p-4 mb-4 border border-gray-100"
+                key={post.id || idx}
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <img
+                    src={profileImage}
+                    alt="Profile"
+                    className="w-10 h-10 rounded-full object-cover border"
+                  />
+                  <div>
+                    <div className="font-semibold text-gray-900">
+                      Lihle Magidigidi
+                      <span className="text-xs text-gray-400 ml-2">
+                        {post.created_at ? formatRelativeTime(post.created_at) : "just now"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
                 <div className="text-gray-700">{post.body}</div>
+                {post.photo_url && (
+                  <img src={post.photo_url} alt="Post" className="mt-2 w-full max-w-xs rounded border" />
+                )}
               </div>
             ))}
           </div>
