@@ -2,37 +2,22 @@
 
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
+import { supabase } from '../supabaseClient';
 
 export default function Home() {
   const [input, setInput] = useState("");
   const [profileImage, setProfileImage] = useState<string>("/profile.jpg");
-  const [posts, setPosts] = useState([
-    { author: "Anna", message: "Hey Greg, did you debug your coffee maker yet? Last cup tasted like JavaScript errors.", time: "2h" },
-    { author: "Adelaida", message: "Greg, saw your last coding session—pretty sure you broke Stack Overflow again! 🧯", time: "3h" },
-    { author: "Juho", message: "Greg, are you still coding in pajamas, or have you upgraded to full-time sweatpants mode?", time: "4h" },
-    { author: "Maija", message: "Greg, rumor has it your computer has more stickers than code running on it. Confirm?", time: "5h" },
-    { author: "Alex", message: "Yo Greg, just pulled an all-nighter on the assignment. Turns out sleep deprivation doesn’t improve coding skills. Weird!", time: "6h" },
-    { author: "Sheryl", message: "Greg, when are we gonna deploy your latest dance moves to production? #AgileDancer", time: "8h" },
-  ]);
+  const [posts, setPosts] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isHovering, setIsHovering] = useState(false);
 
-  // Load posts and profile image from localStorage on mount
+  // Load profile image from localStorage on mount
   useEffect(() => {
-    const storedPosts = localStorage.getItem("wall_posts");
     const storedProfileImage = localStorage.getItem("wall_profile_image");
-    if (storedPosts) {
-      setPosts(JSON.parse(storedPosts));
-    }
     if (storedProfileImage) {
       setProfileImage(storedProfileImage);
     }
   }, []);
-
-  // Save posts to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem("wall_posts", JSON.stringify(posts));
-  }, [posts]);
 
   // Save profile image to localStorage whenever it changes
   useEffect(() => {
@@ -41,6 +26,20 @@ export default function Home() {
       localStorage.setItem("wall_profile_image", profileImage);
     }
   }, [profileImage]);
+
+  // Fetch posts from Supabase on mount
+  useEffect(() => {
+    async function fetchPosts() {
+      const { data, error } = await supabase
+        .from('posts')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (!error && data) {
+        setPosts(data);
+      }
+    }
+    fetchPosts();
+  }, []);
 
   function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -59,11 +58,34 @@ export default function Home() {
     fileInputRef.current?.click();
   }
 
-  function handleShare() {
+  async function handleShare() {
     if (input.trim() && input.length <= 280) {
-      setPosts([{ author: "Lihle Magidigidi", message: input, time: "now" }, ...posts]);
-      setInput("");
+      const { data, error } = await supabase.from('posts').insert([
+        {
+          body: input,
+          // user_id: null, // If you add auth, set this
+        },
+      ]).select();
+      if (!error && data && data.length > 0) {
+        setPosts([data[0], ...posts]);
+        setInput("");
+      }
     }
+  }
+
+  // Helper to format relative time
+  function formatRelativeTime(dateString: string) {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diff = (now.getTime() - date.getTime()) / 1000; // seconds
+
+    if (diff < 60) return 'just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)} minute${Math.floor(diff / 60) === 1 ? '' : 's'} ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)} hour${Math.floor(diff / 3600) === 1 ? '' : 's'} ago`;
+    if (diff < 604800) return `${Math.floor(diff / 86400)} day${Math.floor(diff / 86400) === 1 ? '' : 's'} ago`;
+    if (diff < 2592000) return `${Math.floor(diff / 604800)} week${Math.floor(diff / 604800) === 1 ? '' : 's'} ago`;
+    if (diff < 31536000) return `${Math.floor(diff / 2592000)} month${Math.floor(diff / 2592000) === 1 ? '' : 's'} ago`;
+    return `${Math.floor(diff / 31536000)} year${Math.floor(diff / 31536000) === 1 ? '' : 's'} ago`;
   }
 
   return (
@@ -150,9 +172,9 @@ export default function Home() {
           </div>
           <div className="flex flex-col gap-2 overflow-y-auto">
             {posts.map((post, idx) => (
-              <div className="mb-2" key={idx}>
-                <div className="font-semibold text-gray-900">{post.author} <span className="text-xs text-gray-400 ml-2">{post.time}</span></div>
-                <div className="text-gray-700">{post.message}</div>
+              <div className="mb-2" key={post.id || idx}>
+                <div className="font-semibold text-gray-900">Lihle Magidigidi <span className="text-xs text-gray-400 ml-2">{post.created_at ? formatRelativeTime(post.created_at) : "just now"}</span></div>
+                <div className="text-gray-700">{post.body}</div>
               </div>
             ))}
           </div>
