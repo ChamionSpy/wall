@@ -15,28 +15,11 @@ type Post = {
 
 export default function Home() {
   const [input, setInput] = useState("");
-  const [profileImage, setProfileImage] = useState<string>("/profile.jpg");
   const [posts, setPosts] = useState<Post[]>([]);
   const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isHovering, setIsHovering] = useState(false);
-
-  // Load profile image from localStorage on mount
-  useEffect(() => {
-    const storedProfileImage = localStorage.getItem("wall_profile_image");
-    if (storedProfileImage) {
-      setProfileImage(storedProfileImage);
-    }
-  }, []);
-
-  // Save profile image to localStorage whenever it changes
-  useEffect(() => {
-    // Only store if it's not the default
-    if (profileImage !== "/profile.jpg") {
-      localStorage.setItem("wall_profile_image", profileImage);
-    }
-  }, [profileImage]);
 
   // Fetch posts from Supabase on mount
   useEffect(() => {
@@ -58,7 +41,7 @@ export default function Home() {
       const reader = new FileReader();
       reader.onload = function (event) {
         if (event.target?.result) {
-          setProfileImage(event.target.result as string);
+          // This function is no longer needed as profile image is fixed
         }
       };
       reader.readAsDataURL(file);
@@ -149,38 +132,16 @@ export default function Home() {
         {/* Profile Section */}
         <aside className="w-80 flex-shrink-0 flex flex-col items-center bg-white rounded-xl shadow p-6 h-fit mt-2">
           <div
-            className="relative group mb-4"
+            className="relative mb-4"
             style={{ width: 256, height: 320 }}
-            onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => setIsHovering(false)}
           >
             <Image
-              src={profileImage}
+              src="/profile.jpg"
               alt="Profile"
               width={256}
               height={320}
               className="rounded-lg border-2 border-gray-200 object-cover"
               style={{ width: 256, height: 320 }}
-            />
-            <button
-              type="button"
-              onClick={handleCameraClick}
-              className={`absolute inset-0 flex flex-col items-center justify-center bg-black/40 rounded-lg transition-opacity duration-200 ${isHovering ? 'opacity-100' : 'opacity-0'} cursor-pointer`}
-              tabIndex={-1}
-              aria-label="Change profile photo"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="white" className="w-10 h-10 mb-1">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5V7.5A2.25 2.25 0 0 1 5.25 5.25h2.086a2.25 2.25 0 0 0 1.591-.659l.828-.828A2.25 2.25 0 0 1 12.75 3h2.5a2.25 2.25 0 0 1 2.25 2.25v.75h.75A2.25 2.25 0 0 1 20.25 8.25v8.25A2.25 2.25 0 0 1 18 18.75H6A2.25 2.25 0 0 1 3.75 16.5v0z" />
-                <circle cx="12" cy="13" r="3.25" stroke="white" strokeWidth="1.5" />
-              </svg>
-              <span className="text-white text-sm">upload a photo</span>
-            </button>
-            <input
-              type="file"
-              accept="image/*"
-              ref={fileInputRef}
-              onChange={handleImageUpload}
-              className="hidden"
             />
           </div>
           <div className="w-full text-center">
@@ -267,7 +228,7 @@ export default function Home() {
               >
                 <div className="flex items-center gap-3 mb-2">
                   <img
-                    src={profileImage}
+                    src="/profile.jpg"
                     alt="Profile"
                     className="w-10 h-10 rounded-full object-cover border"
                   />
