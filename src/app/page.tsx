@@ -1,7 +1,7 @@
 'use client';
 
 import Image from "next/image";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 export default function Home() {
   const [input, setInput] = useState("");
@@ -17,11 +17,41 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isHovering, setIsHovering] = useState(false);
 
+  // Load posts and profile image from localStorage on mount
+  useEffect(() => {
+    const storedPosts = localStorage.getItem("wall_posts");
+    const storedProfileImage = localStorage.getItem("wall_profile_image");
+    if (storedPosts) {
+      setPosts(JSON.parse(storedPosts));
+    }
+    if (storedProfileImage) {
+      setProfileImage(storedProfileImage);
+    }
+  }, []);
+
+  // Save posts to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem("wall_posts", JSON.stringify(posts));
+  }, [posts]);
+
+  // Save profile image to localStorage whenever it changes
+  useEffect(() => {
+    // Only store if it's not the default
+    if (profileImage !== "/profile.jpg") {
+      localStorage.setItem("wall_profile_image", profileImage);
+    }
+  }, [profileImage]);
+
   function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (file) {
-      const url = URL.createObjectURL(file);
-      setProfileImage(url);
+      const reader = new FileReader();
+      reader.onload = function (event) {
+        if (event.target?.result) {
+          setProfileImage(event.target.result as string);
+        }
+      };
+      reader.readAsDataURL(file);
     }
   }
 
