@@ -19,7 +19,6 @@ export default function Home() {
   const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isHovering, setIsHovering] = useState(false);
 
   // Fetch posts from Supabase on mount
   useEffect(() => {
@@ -34,23 +33,6 @@ export default function Home() {
     }
     fetchPosts();
   }, []);
-
-  function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = function (event) {
-        if (event.target?.result) {
-          // This function is no longer needed as profile image is fixed
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-  }
-
-  function handleCameraClick() {
-    fileInputRef.current?.click();
-  }
 
   function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] || null;
@@ -183,7 +165,7 @@ export default function Home() {
             >
               {photoPreview ? (
                 <div className="flex flex-col items-center gap-2">
-                  <img src={photoPreview} alt="Preview" className="w-32 h-32 object-cover rounded-lg border" />
+                  <Image src={photoPreview} alt="Preview" width={128} height={128} className="w-32 h-32 object-cover rounded-lg border" />
                   <button
                     type="button"
                     className="text-xs text-red-500 hover:underline mt-1"
@@ -227,9 +209,11 @@ export default function Home() {
                 key={post.id || idx}
               >
                 <div className="flex items-center gap-3 mb-2">
-                  <img
+                  <Image
                     src="/profile.jpg"
                     alt="Profile"
+                    width={40}
+                    height={40}
                     className="w-10 h-10 rounded-full object-cover border"
                   />
                   <div>
@@ -243,7 +227,13 @@ export default function Home() {
                 </div>
                 <div className="text-gray-700">{post.body}</div>
                 {post.photo_url && (
-                  <img src={post.photo_url} alt="Post" className="mt-2 w-full max-w-xs rounded border" />
+                  <Image
+                    src={post.photo_url}
+                    alt="Post"
+                    width={320}
+                    height={320}
+                    className="mt-2 w-full max-w-xs rounded border object-cover"
+                  />
                 )}
               </div>
             ))}
