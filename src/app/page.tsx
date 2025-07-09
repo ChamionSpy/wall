@@ -4,10 +4,18 @@ import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { supabase } from '../supabaseClient';
 
+// Define a type for posts
+type Post = {
+  id: string;
+  user_id?: string | null;
+  body: string;
+  created_at: string;
+};
+
 export default function Home() {
   const [input, setInput] = useState("");
   const [profileImage, setProfileImage] = useState<string>("/profile.jpg");
-  const [posts, setPosts] = useState<any[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isHovering, setIsHovering] = useState(false);
 
